@@ -4,6 +4,8 @@
 
 #include <vector>
 
+namespace rtx {
+
 class Camera {
    public:
     Camera(float vertical_fov, float near, float far);
@@ -47,3 +49,5 @@ class Camera {
     unsigned int viewport_width = 0;
     unsigned int viewport_height = 0;
 };
+
+}  // namespace rtx

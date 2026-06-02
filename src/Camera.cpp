@@ -2,6 +2,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+namespace rtx {
+
 Camera::Camera(float vertical_fov, float near, float far) : vertical_fov(vertical_fov), near(near), far(far) {
     direction = glm::vec3(0, 0, -1);
     position = glm::vec3(0, 0, 3);
@@ -86,3 +88,5 @@ void Camera::move(const glm::vec3& delta) {
 const std::vector<glm::vec3>& Camera::getRays() const {
     return rays;
 }
+
+}  // namespace rtx

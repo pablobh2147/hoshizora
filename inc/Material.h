@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace rtx {
+
 struct Material {
     glm::vec3 albedo;
     float roughness = 1.0f;
@@ -14,3 +16,5 @@ struct Material {
         return emissive * emissive_strength;
     }
 };
+
+}  // namespace rtx

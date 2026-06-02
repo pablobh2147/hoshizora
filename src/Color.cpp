@@ -1,5 +1,7 @@
 #include "Color.hpp"
 
+namespace rtx {
+
 int_color calculateColorFromRGB(float r, float g, float b) {
     int red = int(r * 255.0f);
     int green = int(g * 255.0f);
@@ -40,3 +42,5 @@ float getGreenF(int_color color) {
 float getBlueF(int_color color) {
     return float((color & 0x000000FF) >> 0) / 255.0f;
 }
+
+}  // namespace rtx

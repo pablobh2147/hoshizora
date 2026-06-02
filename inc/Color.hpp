@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace rtx {
+
 typedef glm::vec4 Color;
 typedef unsigned int int_color;
 
@@ -15,3 +17,5 @@ int getBlue(int_color color);
 float getRedF(int_color color);
 float getGreenF(int_color color);
 float getBlueF(int_color color);
+
+}  // namespace rtx

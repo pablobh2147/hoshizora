@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace rtx {
+
 struct Sphere {
     glm::vec3 position;
     float radius;
@@ -12,3 +14,5 @@ struct Sphere {
           radius(radius),
           material_idx(material_idx) {}
 };
+
+}  // namespace rtx

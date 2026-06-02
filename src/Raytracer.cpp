@@ -4,7 +4,10 @@
 
 #include "Camera.h"
 #include "ImageBuffer.hpp"
-#include "Renderer.h"
+#include "Renderer.hpp"
+#include "Scene.h"
+
+using namespace rtx;
 
 std::chrono::milliseconds start_time;
 
@@ -57,37 +60,25 @@ int main() {
     scene.materials.push_back(material_3);
     scene.spheres.push_back(Sphere(glm::vec3(100.0f, 0.5f, -300), 100, 2));
 
-    bool render_animation = false;
+    bool render_animation = true;
     constexpr int samples = 128;
 
     if (render_animation) {
-        constexpr int total_frames = 24 * 3;
+        constexpr int TOTAL_FRAMES = 24;
+        constexpr glm::vec3 MOVE_STEP = glm::vec3(0.25F, 0, 0.25F);
 
-        for (int i = 0; i < total_frames; i++) {
-            camera.move(glm::vec3(0.25f / 2.0f, 0, 0.25f / 2.0f));
+        for (int i = 0; i < TOTAL_FRAMES; i++) {
+            std::cout << "Rendering frame " << i << " of " << TOTAL_FRAMES << std::endl;
+            camera.move(MOVE_STEP);
 
-            renderer.resetSamples(width, height);
-            for (int s = 1; s <= samples; s++) {
-                startTimer();
-                renderer.render(scene, camera, &canvas);
-                stopTimer();
-            }
+            renderer.RenderFrame(scene, camera, canvas);
 
             std::string filename = std::string("output/image-") + std::to_string(i) + std::string(".png");
             rtx::WriteImageToDisk(canvas, filename.c_str());
-            std::cout << "Rendered frame " << i << " of " << total_frames << std::endl;
+            std::cout << "Rendered frame " << i << " of " << TOTAL_FRAMES << std::endl;
         }
     } else {
-        renderer.resetSamples(width, height);
-        for (int i = 1; i <= samples; i++) {
-            startTimer();
-            renderer.render(scene, camera, &canvas);
-            stopTimer();
-
-            int progress = static_cast<int>((static_cast<float>(i) / samples) * 100);
-            std::cout << "\rProgress: " << progress << "%" << std::flush;
-        }
-        std::cout << std::endl;
+        renderer.RenderFrame(scene, camera, canvas);
         rtx::WriteImageToDisk(canvas, "output/image.png");
     }
 

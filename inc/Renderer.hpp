@@ -1,0 +1,39 @@
+#pragma once
+
+#include "Camera.h"
+#include "ImageBuffer.hpp"
+#include "Raycast.hpp"
+#include "Scene.h"
+
+namespace rtx {
+
+struct RenderOptions {
+    uint32_t samples = 1;
+};
+
+class Renderer {
+   public:
+    void RenderFrame(const Scene& scene, const Camera& camera, ImageBuffer& buffer, const RenderOptions& options = {1});
+
+   private:
+    void RenderSample(const Scene& scene, const Camera& camera, ImageBuffer& buffer);
+    void ResetSamples(uint32_t width, uint32_t height);
+
+   private:
+    RaycastResult TraceRay(const Raycast& ray);
+    RaycastResult ClosestHit(const Raycast& ray, float hit_distance, const Sphere* sphere);
+
+    Color ProcessFragment(uint32_t x, uint32_t y);
+
+    const Scene* current_scene = nullptr;
+    const Camera* current_camera = nullptr;
+
+    uint32_t width;
+    uint32_t height;
+
+    Color* accumulated_colors = nullptr;
+    uint32_t accumulated_samples = 1;
+
+    std::vector<uint32_t> vertical_iter;
+};
+}  // namespace rtx

@@ -14,20 +14,20 @@ void Renderer::RenderFrame(const Scene& scene, const Camera& camera, ImageBuffer
     ResetSamples(buffer.GetWidth(), buffer.GetHeight());
     for (uint32_t i = 0; i < options.samples; i++) {
         std::cout << "Sample " << i << " of " << options.samples << std::endl;
-        RenderSample(scene, camera, buffer);
+        RenderSample(scene, camera, buffer, options);
     }
 }
 
-void Renderer::RenderSample(const Scene& scene, const Camera& camera, ImageBuffer& buffer) {
+void Renderer::RenderSample(const Scene& scene, const Camera& camera, ImageBuffer& buffer, const RenderOptions& options) {
     this->current_camera = &camera;
     this->current_scene = &scene;
     this->width = buffer.GetWidth();
     this->height = buffer.GetHeight();
 
     std::for_each(std::execution::par, vertical_iter.begin(),
-                  vertical_iter.end(), [this, &buffer](uint32_t y) {
+                  vertical_iter.end(), [this, &buffer, &options](uint32_t y) {
                       for (uint32_t x = 0; x < width; x++) {
-                          Color color = ProcessFragment(x, y);
+                          Color color = ProcessFragment(x, y, options);
                           accumulated_colors[x + y * width] += color;
 
                           Color accum = accumulated_colors[x + y * width];
@@ -76,10 +76,10 @@ glm::vec3 randomUnitSphere(uint32_t& seed) {
             randomFloat(seed) * 2.0f - 1.0f));
 }
 
-Color Renderer::ProcessFragment(uint32_t x, uint32_t y) {
+Color Renderer::ProcessFragment(uint32_t x, uint32_t y, const RenderOptions& options) {
     Raycast ray = {
-        .origin = current_camera->getPosition(),
-        .direction = current_camera->getRays()[x + y * width],
+        .origin = current_camera->GetPosition(),
+        .direction = current_camera->GetRayDirection(x, y),
     };
 
     glm::vec3 light(0.0F);
@@ -88,7 +88,8 @@ Color Renderer::ProcessFragment(uint32_t x, uint32_t y) {
     uint32_t seed = x + y * width;
     seed *= accumulated_samples;
 
-    uint32_t bounces = 5;
+    const uint32_t bounces = options.max_bounces;
+
     for (uint32_t i = 0; i < bounces; i++) {
         seed += i;
 

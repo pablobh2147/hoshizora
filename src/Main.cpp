@@ -5,7 +5,7 @@
 #include "Camera.hpp"
 #include "ImageBuffer.hpp"
 #include "Renderer.hpp"
-#include "Scene.h"
+#include "Scene.hpp"
 
 using namespace rtx;
 

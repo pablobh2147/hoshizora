@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "Material.h"
-#include "Sphere.h"
+#include "Material.hpp"
+#include "Sphere.hpp"
 
 namespace rtx {
 

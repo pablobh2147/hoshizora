@@ -3,7 +3,7 @@
 #include "Camera.hpp"
 #include "ImageBuffer.hpp"
 #include "Raycast.hpp"
-#include "Scene.h"
+#include "Scene.hpp"
 
 namespace rtx {
 

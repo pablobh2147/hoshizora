@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compiler-specific optimization flags
-add_compile_options(-march=native -O3 -flto -ffast-math -funroll-loops)
+add_compile_options(-march=native -O3 -ffast-math -funroll-loops)
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)

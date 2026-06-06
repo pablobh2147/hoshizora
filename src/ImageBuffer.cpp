@@ -2,7 +2,7 @@
 
 #include <stb_image_write.h>
 
-namespace rtx {
+namespace hzr {
 
 ImageBuffer::ImageBuffer(uint32_t width, uint32_t height)
     : m_width(width),
@@ -33,4 +33,4 @@ void WriteImageToDisk(const ImageBuffer& img, const char* filename) {
     stbi_write_png(filename, img.GetWidth(), img.GetHeight(), img.GetChannels(), img.GetData(), 0);
 }
 
-}  // namespace rtx
+}  // namespace hzr

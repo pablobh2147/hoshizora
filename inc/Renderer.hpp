@@ -5,7 +5,7 @@
 #include "Raycast.hpp"
 #include "Scene.hpp"
 
-namespace rtx {
+namespace hzr {
 
 struct RenderOptions {
     uint32_t samples = 1;
@@ -37,4 +37,4 @@ class Renderer {
 
     std::vector<uint32_t> pixel_iter;
 };
-}  // namespace rtx
+}  // namespace hzr

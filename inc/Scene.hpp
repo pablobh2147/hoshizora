@@ -5,7 +5,7 @@
 #include "Material.hpp"
 #include "Sphere.hpp"
 
-namespace rtx {
+namespace hzr {
 
 using MaterialHandle = size_t;
 
@@ -35,4 +35,4 @@ class Scene {
     }
 };
 
-}  // namespace rtx
+}  // namespace hzr

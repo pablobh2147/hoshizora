@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace rtx {
+namespace hzr {
 
 struct Material {
     glm::vec3 albedo;
@@ -17,4 +17,4 @@ struct Material {
     }
 };
 
-}  // namespace rtx
+}  // namespace hzr

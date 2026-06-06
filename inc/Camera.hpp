@@ -4,7 +4,7 @@
 
 #include <vector>
 
-namespace rtx {
+namespace hzr {
 
 class Camera {
    public:
@@ -63,4 +63,4 @@ class Camera {
     uint32_t m_viewport_height = 0;
 };
 
-}  // namespace rtx
+}  // namespace hzr

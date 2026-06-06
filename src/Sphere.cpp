@@ -2,6 +2,6 @@
 
 #include "Raycast.hpp"
 
-namespace rtx {
+namespace hzr {
 
-}  // namespace rtx
+}  // namespace hzr

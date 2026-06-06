@@ -4,7 +4,7 @@
 
 #include "Color.hpp"
 
-namespace rtx {
+namespace hzr {
 
 class ImageBuffer {
    private:
@@ -34,4 +34,4 @@ class ImageBuffer {
 
 void WriteImageToDisk(const ImageBuffer& img, const char* filename);
 
-}  // namespace rtx
+}  // namespace hzr

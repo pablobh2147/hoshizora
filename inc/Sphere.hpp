@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace rtx {
+namespace hzr {
 
 struct Sphere {
     glm::vec3 position;
@@ -15,4 +15,4 @@ struct Sphere {
           material_idx(material_idx) {}
 };
 
-}  // namespace rtx
+}  // namespace hzr

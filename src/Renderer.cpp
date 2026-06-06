@@ -7,7 +7,7 @@
 #include <execution>
 #include <iostream>
 
-namespace rtx {
+namespace hzr {
 
 void Renderer::RenderFrame(const Scene& scene, const Camera& camera, ImageBuffer& buffer, const RenderOptions& options) {
     ResetSamples(buffer.GetWidth(), buffer.GetHeight());
@@ -168,4 +168,4 @@ RaycastResult Renderer::ClosestHit(const Raycast& ray, float hit_distance, const
     return result;
 }
 
-}  // namespace rtx
+}  // namespace hzr

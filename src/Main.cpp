@@ -7,7 +7,7 @@
 #include "Renderer.hpp"
 #include "Scene.hpp"
 
-using namespace rtx;
+using namespace hzr;
 
 void ConfigureScene(Scene& scene) noexcept {
     scene.SetBackgroundColor(glm::vec3(0.05f, 0.05f, 0.15f));

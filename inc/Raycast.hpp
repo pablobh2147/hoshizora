@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace rtx {
+namespace hzr {
 
 class Sphere;
 
@@ -18,4 +18,4 @@ struct RaycastResult {
     const Sphere* body = nullptr;
 };
 
-}  // namespace rtx
+}  // namespace hzr

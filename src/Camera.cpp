@@ -2,7 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace rtx {
+namespace hzr {
 
 Camera::Camera(float fov, float near, float far) : m_vertical_fov(fov), m_near(near), m_far(far) {}
 
@@ -44,4 +44,4 @@ glm::vec3 Camera::GetRayDirection(uint32_t x, uint32_t y) const {
     return m_rays[x + y * m_viewport_width];
 }
 
-}  // namespace rtx
+}  // namespace hzr

@@ -1,0 +1,235 @@
+#version 450
+
+#include "common/rng.glsl"
+#include "common/material.glsl"
+#include "common/shape.glsl"
+#include "common/ray.glsl"
+
+const float EPSILON = 1e-6;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+    uint width;
+    uint height;
+    uint samples;
+    mat4 view;
+    mat4 projection;
+} pc;
+
+layout(std430, binding = 0) buffer OutputBuffer {
+    uint pixels[];
+} image_buffer;
+
+// --------------- Scene Data ---------------
+
+const Material materials[] = Material[](
+    Material(vec3(0.9, 0.1, 0.1), 0.2, vec3(0.0), 0.0),                   // 0: red
+    Material(vec3(0.1, 0.8, 0.1), 0.5, vec3(0.0), 0.3),                   // 1: green
+    Material(vec3(0.1, 0.3, 0.9), 0.05, vec3(0.0), 1.0),                  // 2: blue metallic
+    Material(vec3(1.0, 0.5, 0.1), 0.3, vec3(0.0), 0.0),                   // 3: orange
+    Material(vec3(0.7, 0.1, 0.8), 0.15, vec3(0.0), 0.6),                  // 4: purple
+    Material(vec3(0.9, 0.9, 0.1), 0.4, vec3(0.0), 0.2),                   // 5: yellow
+    Material(vec3(0.1, 0.8, 0.8), 0.1, vec3(0.0), 0.8),                   // 6: cyan
+    Material(vec3(1.0, 0.4, 0.7), 0.9, vec3(0.0), 0.1),                   // 7: pink
+    Material(vec3(0.9, 0.9, 0.9), 0.8, vec3(0.0), 0.0),                   // 8: white
+    Material(vec3(1.0, 1.0, 1.0), 0.0, vec3(1.0, 0.95, 0.9) * 12.0, 0.0)  // 9: light
+);
+
+const Sphere spheres[] = Sphere[](
+    Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0),              // center red
+    Sphere(vec3(2.5, 0.0, -4.0), 0.8, 1),              // right green
+    Sphere(vec3(-2.5, 0.0, -4.0), 0.8, 2),             // left blue metallic
+    Sphere(vec3(1.2, -0.5, -6.5), 0.6, 3),             // orange
+    Sphere(vec3(-1.2, -0.5, -6.5), 0.6, 4),            // purple
+    Sphere(vec3(4.0, 0.5, -6.0), 0.7, 5),              // yellow
+    Sphere(vec3(-4.0, 0.5, -6.0), 0.7, 6),             // cyan
+    Sphere(vec3(0.0, 1.5, -3.5), 0.5, 7),              // pink
+    Sphere(vec3(3.5, -0.3, -8.0), 0.9, 8),             // white
+    Sphere(vec3(-3.5, -0.3, -8.0), 0.9, 0),            // red
+    Sphere(vec3(0.0, 6.0, -3.0), 0.6, 9),              // light 1
+    Sphere(vec3(-5.0, 6.0, -5.0), 0.4, 9)              // light 2
+);
+
+const Plane planes[] = Plane[](
+    Plane(vec3(0.0, 1.0, 0.0), -1.5, 8),  // ground plane
+    Plane(vec3(0.0, 1.0, 0.0), 5.0, 8),   // ceiling plane
+    Plane(vec3(0.0, 0.0, -1.0), -2.0, 0),   // front plane
+    Plane(vec3(0.0, 0.0, 1.0), -15.0, 8),  // back plane
+    Plane(vec3(1.0, 0.0, 0.0), -5.0, 0),  // left plane
+    Plane(vec3(-1.0, 0.0, 0.0), -5.0, 0)  // right plane
+);
+
+const vec3 background_color = vec3(0.05, 0.05, 0.15);
+
+// --------------- Pixel Writing ---------------
+
+void WritePixel(uvec2 pixel, uint r, uint g, uint b, uint a) {
+    uint index = (pc.height - 1 - pixel.y) * pc.width + pixel.x;
+    image_buffer.pixels[index] = r | (g << 8) | (b << 16) | (a << 24);
+}
+
+void WritePixelRGBA(uvec2 pixel, vec4 color) {
+    uint r = uint(color.r * 255.0);
+    uint g = uint(color.g * 255.0);
+    uint b = uint(color.b * 255.0);
+    uint a = uint(color.a * 255.0);
+    WritePixel(pixel, r, g, b, a);
+}
+
+// --------------- Ray Creation ---------------
+
+Ray CreateRay(uvec2 pixel) {
+    vec2 uv = vec2(pixel.x, pixel.y) / vec2(pc.width, pc.height);
+    vec2 ndc = uv * 2.0 - 1.0; // Convert to normalized device coordinates
+
+    mat4 inv_projection = inverse(pc.projection);
+    mat4 inv_view = inverse(pc.view);
+
+    vec4 target = inv_projection * vec4(ndc.x, ndc.y, 1.0, 1.0);
+    vec3 ray_direction = vec3(inv_view * vec4(normalize(target.xyz / target.w), 0.0));
+
+    vec3 ray_origin = inv_view[3].xyz;
+
+    return Ray(ray_origin, normalize(ray_direction));
+}
+
+// --------------- Ray Intersection ---------------
+
+RaycastResult RaycastSphere(Sphere sphere, Ray ray) {
+    RaycastResult result;
+    result.hit = false;
+
+    vec3 origin = ray.origin - sphere.position;
+
+    float half_b = dot(origin, ray.direction);
+    float c = dot(origin, origin) - sphere.radius * sphere.radius;
+
+    float discriminant = half_b * half_b - c;
+    if (discriminant < 0.0) {
+        return result;
+    }
+
+    float t0 = -half_b - sqrt(discriminant);
+    if (t0 > 0.0) {
+        result.hit = true;
+        result.distance = t0;
+        result.position = ray.origin + ray.direction * t0;
+        result.normal = normalize(result.position - sphere.position);
+        result.material_index = sphere.material_index;
+    }
+
+    return result;
+}
+
+RaycastResult RaycastPlane(Plane plane, Ray ray) {
+    RaycastResult result;
+    result.hit = false;
+
+    float denom = dot(plane.normal, ray.direction);
+    if (abs(denom) > EPSILON) {
+        float t = (plane.distance - dot(plane.normal, ray.origin)) / denom;
+        if (t > 0.0) {
+            result.hit = true;
+            result.distance = t;
+            result.position = ray.origin + ray.direction * t;
+            result.normal = plane.normal;
+            result.material_index = plane.material_index;
+        }
+    }
+
+    return result;
+}
+
+RaycastResult TraceRay(Ray ray) {
+    RaycastResult result;
+    result.hit = false;
+
+    for (int i = 0; i < spheres.length(); i++) {
+        RaycastResult sphere_result = RaycastSphere(spheres[i], ray);
+        if (sphere_result.hit && (!result.hit || sphere_result.distance < result.distance)) {
+            result = sphere_result;
+        }
+    }
+
+    for (int i = 0; i < planes.length(); i++) {
+        RaycastResult plane_result = RaycastPlane(planes[i], ray);
+        if (plane_result.hit && (!result.hit || plane_result.distance < result.distance)) {
+            result = plane_result;
+        }
+    }
+
+    return result;
+}
+
+// --------------- Fragment Processing ---------------
+
+vec4 ProcessFragment(Ray ray, uint seed) {
+    vec3 light = vec3(0.0);
+    vec3 contribution = vec3(1.0);
+
+    const uint MAX_BOUNCES = 10;
+    const uint MIN_RECURSIONS = 4;
+
+    for (uint i = 0; i < MAX_BOUNCES; i++) {
+        seed += i;
+
+        RaycastResult result = TraceRay(ray);
+
+        if (!result.hit) {
+            light += background_color * contribution;
+            break;
+        }
+
+        Material material = materials[result.material_index];
+
+        light += material.emission * contribution;
+
+        vec3 specular_dir = reflect(ray.direction, result.normal);
+        vec3 diffuse_dir = normalize(result.normal + RandomUnitSphere(seed));
+        float roughness2 = material.roughness * material.roughness;
+
+        ray.origin = result.position + result.normal * EPSILON;
+        ray.direction = normalize(mix(specular_dir, diffuse_dir, roughness2));
+
+        vec3 specular_tint = mix(vec3(1.0), material.albedo, material.metallic);
+        contribution *= mix(specular_tint, material.albedo, roughness2);
+
+        if (i >= MIN_RECURSIONS) {
+            float p = max(contribution.r, max(contribution.g, contribution.b));
+            if (RandomFloat(seed) > p) {
+                break;
+            }
+            contribution /= p;
+        }
+    }
+
+    return vec4(light, 1.0);
+}
+
+// --------------- Main ---------------
+
+void main() {
+    uvec2 pixel = gl_GlobalInvocationID.xy;
+
+    if (pixel.x >= pc.width || pixel.y >= pc.height) {
+        return;
+    }
+
+    Ray ray = CreateRay(pixel);
+
+    vec4 accumulated_color = vec4(0.0);
+
+    for (uint i = 0; i < pc.samples; i++) {
+        uint seed = (pixel.x + pixel.y * pc.width) * i;
+        vec4 sample_color = ProcessFragment(ray, seed);
+        accumulated_color += sample_color;
+    }
+
+    accumulated_color /= float(pc.samples);
+    accumulated_color = clamp(accumulated_color, vec4(0.0), vec4(1.0));
+    vec4 final_color = pow(accumulated_color, vec4(1.0 / 2.2));
+    final_color.a = 1.0;
+
+    WritePixelRGBA(pixel, final_color);
+}

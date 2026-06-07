@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 # Generate compile_commands.json for IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -11,6 +11,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Compiler-specific optimization flags
 add_compile_options(-march=native -O3 -ffast-math -funroll-loops)
 
+# Find Vulkan SDK
+find_package(Vulkan REQUIRED)
+
+# Third-party libraries
+add_subdirectory(lib/vma)
+
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/glm)
@@ -21,3 +27,31 @@ file(GLOB_RECURSE SOURCES src/*.cpp)
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator)
+
+# Shader compilation
+find_program(GLSLC glslc HINTS Vulkan::glslc)
+
+file(GLOB_RECURSE SHADER_SOURCES shaders/*.comp)
+
+set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
+
+foreach(SHADER ${SHADER_SOURCES})
+    get_filename_component(SHADER_NAME ${SHADER} NAME)
+    set(SHADER_OUTPUT ${SHADER_OUTPUT_DIR}/${SHADER_NAME}.spv)
+    set(SHADER_DEPFILE ${SHADER_OUTPUT_DIR}/${SHADER_NAME}.d)
+    add_custom_command(
+        OUTPUT ${SHADER_OUTPUT}
+        COMMAND ${GLSLC} ${SHADER} -o ${SHADER_OUTPUT} -MD -MF ${SHADER_DEPFILE} -I${CMAKE_CURRENT_SOURCE_DIR}/shaders -O
+        DEPENDS ${SHADER}
+        DEPFILE ${SHADER_DEPFILE}
+        COMMENT "Compiling shader: ${SHADER_NAME}"
+    )
+    list(APPEND SHADER_OUTPUTS ${SHADER_OUTPUT})
+endforeach()
+
+add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
+add_dependencies(${PROJECT_NAME} Shaders)

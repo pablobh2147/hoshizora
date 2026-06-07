@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "Camera.hpp"
+#include "core/Camera.hpp"
 #include "core/Logger.hpp"
 #include "math/Matrix.hpp"
 #include "math/Vector.hpp"

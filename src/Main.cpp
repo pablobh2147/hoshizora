@@ -1,11 +1,14 @@
 #include <stb_image_write.h>
 
+#include <cmath>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "Camera.hpp"
 #include "core/Logger.hpp"
 #include "math/Matrix.hpp"
+#include "math/Vector.hpp"
 #include "vulkan/VulkanBuffer.hpp"
 #include "vulkan/VulkanComputePipeline.hpp"
 #include "vulkan/VulkanContext.hpp"
@@ -20,18 +23,40 @@ struct PushConstants {
     alignas(16) Matrix4f projection;
 };
 
+struct SceneConfig {
+    uint32_t width;
+    uint32_t height;
+    uint32_t samples;
+    std::string output_path;
+
+    float camera_fov;
+    Vector3f camera_pos;
+    Vector3f camera_target;
+};
+
+void LoadSceneConfig(SceneConfig& config) {
+    std::cin >> config.width >> config.height;
+    std::cin >> config.samples;
+    std::cin >> config.output_path;
+    std::cin >> config.camera_fov;
+    std::cin >> config.camera_pos.x >> config.camera_pos.y >> config.camera_pos.z;
+    std::cin >> config.camera_target.x >> config.camera_target.y >> config.camera_target.z;
+}
+
 int main() {
     constexpr uint32_t COLOR_COMPONENTS = 4;
     constexpr uint32_t COMPUTE_GROUP_SIZE = 16;
 
-    uint32_t width, height;
-    std::cin >> width >> height;
+    SceneConfig config;
+    LoadSceneConfig(config);
 
-    uint32_t samples;
-    std::cin >> samples;
+    uint32_t width = config.width;
+    uint32_t height = config.height;
+    float aspect = static_cast<float>(width) / static_cast<float>(height);
 
-    std::string output_path;
-    std::cin >> output_path;
+    uint32_t samples = config.samples;
+
+    std::string output_path = config.output_path;
 
     // Initialize Vulkan
     VulkanContext ctx;
@@ -70,42 +95,44 @@ int main() {
     VkDescriptorSet descriptor_set = pipeline.AllocateDescriptorSet();
     pipeline.UpdateDescriptorSet(descriptor_set, 0, output_buffer.GetBuffer(), output_buffer.GetSize());
 
+    Camera camera(config.camera_fov, 0.01F, 100.0F);
+    camera.CalculateView(config.camera_pos, config.camera_target, Vector3f(0, 1, 0));
+    camera.CalculateProjection(aspect);
+
+    // Strip extension from output path for indexed filenames
+    std::string base_path = output_path;
+    std::string extension = ".png";
+    auto dot_pos = output_path.rfind('.');
+    if (dot_pos != std::string::npos) {
+        base_path = output_path.substr(0, dot_pos);
+        extension = output_path.substr(dot_pos);
+    }
+
+    uint32_t group_x = (width + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
+    uint32_t group_y = (height + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
+    std::vector<uint32_t> pixels(width * height);
+
     // Record and submit compute commands
     VkCommandBuffer cmd = ctx.BeginSingleTimeCommands();
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.GetPipeline());
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.GetPipelineLayout(), 0, 1, &descriptor_set, 0, nullptr);
 
-    Vector3f camera_pos;
-    std::cin >> camera_pos.x >> camera_pos.y >> camera_pos.z;
-
-    Camera camera(45.0F, 0.01F, 100.0F);
-    camera.Resize(width, height);
-    camera.SetPosition(camera_pos);
-    camera.SetDirection(glm::normalize(Vector3f(0.0F, -0.2F, -1.0F)));
-
     PushConstants pc {width, height, samples, camera.GetView(), camera.GetProjection()};
     pipeline.PushConstants(cmd, &pc, sizeof(PushConstants));
 
-    uint32_t group_x = (width + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
-    uint32_t group_y = (height + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
     vkCmdDispatch(cmd, group_x, group_y, 1);
-
-    Logger::Info("main", "Dispatched compute shader with group size: {}x{}", group_x, group_y);
 
     ctx.EndSingleTimeCommands(cmd);
 
-    Logger::Info("main", "Finished executing compute shader");
-
     // Read back the buffer
-    Logger::Info("main", "Reading back buffer...");
-    std::vector<uint32_t> pixels(width * height);
     output_buffer.Download(pixels.data(), pixels.size() * sizeof(uint32_t));
 
     // Write to PNG using stb_image_write
-    Logger::Info("main", "Writing to PNG...");
-    stbi_write_png(output_path.c_str(), width, height, COLOR_COMPONENTS, pixels.data(), width * COLOR_COMPONENTS);
-    Logger::Info("main", "Wrote output to {}", output_path);
+    std::string frame_path = base_path + extension;
+    stbi_write_png(frame_path.c_str(), width, height, COLOR_COMPONENTS, pixels.data(), width * COLOR_COMPONENTS);
+
+    Logger::Info("main", "Finished rendering");
 
     // Cleanup
     pipeline.Destroy();

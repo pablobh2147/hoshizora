@@ -78,10 +78,7 @@ Vector3f RandomUnitSphere(uint32_t& seed) {
 }
 
 Color Renderer::ProcessFragment(uint32_t x, uint32_t y, const RenderOptions& options) {
-    Raycast ray = {
-        .origin = current_camera->GetPosition(),
-        .direction = current_camera->GetRayDirection(x, y),
-    };
+    Raycast ray = {};
 
     Vector3f light(0.0F);
     Vector3f contribution(1.0F);

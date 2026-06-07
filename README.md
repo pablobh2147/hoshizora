@@ -11,7 +11,7 @@ A from-scratch, GPU-accelerated physically-based rendering engine built in C++ a
   <img src="docs/img/example-2.gif" alt="Example render 2" width="45%">
 </p>
 <p align="center">
-  <img src="docs/img/example-3.png" alt="Example render 3" width="70%">
+  <img src="docs/img/example-3.png" alt="Example render 3" width="90%">
 </p>
 
 ## Overview

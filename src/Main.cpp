@@ -1,136 +1,116 @@
-#include <format>
-#include <iostream>
-#include <string>
+#include <stb_image_write.h>
+
+#include <cstdint>
+#include <vector>
 
 #include "Camera.hpp"
-#include "ImageBuffer.hpp"
-#include "Renderer.hpp"
-#include "Scene.hpp"
+#include "core/Logger.hpp"
+#include "math/Matrix.hpp"
+#include "vulkan/VulkanBuffer.hpp"
+#include "vulkan/VulkanComputePipeline.hpp"
+#include "vulkan/VulkanContext.hpp"
 
 using namespace hzr;
 
-void ConfigureScene(Scene& scene) noexcept {
-    scene.SetBackgroundColor(Vector3f(0.05f, 0.05f, 0.15f));
-
-    Material red_material;
-    red_material.albedo = Vector3f(0.9f, 0.1f, 0.1f);
-    red_material.roughness = 0.2f;
-    red_material.metallic = 0.0f;
-
-    Material green_material;
-    green_material.albedo = Vector3f(0.1f, 0.8f, 0.1f);
-    green_material.roughness = 0.5f;
-    green_material.metallic = 0.3f;
-
-    Material blue_metallic_material;
-    blue_metallic_material.albedo = Vector3f(0.1f, 0.3f, 0.9f);
-    blue_metallic_material.roughness = 0.05f;
-    blue_metallic_material.metallic = 1.0f;
-
-    Material orange_material;
-    orange_material.albedo = Vector3f(1.0f, 0.5f, 0.1f);
-    orange_material.roughness = 0.3f;
-    orange_material.metallic = 0.0f;
-
-    Material purple_material;
-    purple_material.albedo = Vector3f(0.7f, 0.1f, 0.8f);
-    purple_material.roughness = 0.15f;
-    purple_material.metallic = 0.6f;
-
-    Material yellow_material;
-    yellow_material.albedo = Vector3f(0.9f, 0.9f, 0.1f);
-    yellow_material.roughness = 0.4f;
-    yellow_material.metallic = 0.2f;
-
-    Material cyan_material;
-    cyan_material.albedo = Vector3f(0.1f, 0.8f, 0.8f);
-    cyan_material.roughness = 0.1f;
-    cyan_material.metallic = 0.8f;
-
-    Material pink_material;
-    pink_material.albedo = Vector3f(1.0f, 0.4f, 0.7f);
-    pink_material.roughness = 0.9f;
-    pink_material.metallic = 0.1f;
-
-    Material white_material;
-    white_material.albedo = Vector3f(0.9f, 0.9f, 0.9f);
-    white_material.roughness = 0.8f;
-    white_material.metallic = 0.0f;
-
-    Material light_material;
-    light_material.emissive = Vector3f(1.0f, 0.95f, 0.9f);
-    light_material.emissive_strength = 12.0f;
-
-    MaterialHandle red_mat_handle = scene.RegisterMaterial(red_material);
-    MaterialHandle green_mat_handle = scene.RegisterMaterial(green_material);
-    MaterialHandle blue_mat_handle = scene.RegisterMaterial(blue_metallic_material);
-    MaterialHandle orange_mat_handle = scene.RegisterMaterial(orange_material);
-    MaterialHandle purple_mat_handle = scene.RegisterMaterial(purple_material);
-    MaterialHandle yellow_mat_handle = scene.RegisterMaterial(yellow_material);
-    MaterialHandle cyan_mat_handle = scene.RegisterMaterial(cyan_material);
-    MaterialHandle pink_mat_handle = scene.RegisterMaterial(pink_material);
-    MaterialHandle white_mat_handle = scene.RegisterMaterial(white_material);
-    MaterialHandle light_mat_handle = scene.RegisterMaterial(light_material);
-
-    scene.AddSphere(Sphere(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, red_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(2.5f, 0.0f, -4.0f), 0.8f, green_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(-2.5f, 0.0f, -4.0f), 0.8f, blue_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(1.2f, -0.5f, -6.5f), 0.6f, orange_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(-1.2f, -0.5f, -6.5f), 0.6f, purple_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(4.0f, 0.5f, -6.0f), 0.7f, yellow_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(-4.0f, 0.5f, -6.0f), 0.7f, cyan_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(0.0f, 1.5f, -3.5f), 0.5f, pink_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(3.5f, -0.3f, -8.0f), 0.9f, white_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(-3.5f, -0.3f, -8.0f), 0.9f, red_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(0.0f, -101.0f, 0.0f), 100.0f, white_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(0.0f, 6.0f, -3.0f), 0.6f, light_mat_handle));
-    scene.AddSphere(Sphere(Vector3f(-5.0f, 4.0f, -5.0f), 0.4f, light_mat_handle));
-}
+struct PushConstants {
+    uint32_t width;
+    uint32_t height;
+    uint32_t samples;
+    alignas(16) Matrix4f view;
+    alignas(16) Matrix4f projection;
+};
 
 int main() {
-    constexpr uint32_t OUTPUT_WIDTH = 512;
-    constexpr uint32_t OUTPUT_HEIGHT = 512;
+    constexpr uint32_t COLOR_COMPONENTS = 4;
+    constexpr uint32_t COMPUTE_GROUP_SIZE = 16;
 
-    ImageBuffer buffer = ImageBuffer(OUTPUT_WIDTH, OUTPUT_HEIGHT);
-    Renderer renderer;
+    uint32_t width, height;
+    std::cin >> width >> height;
+
+    uint32_t samples;
+    std::cin >> samples;
+
+    std::string output_path;
+    std::cin >> output_path;
+
+    // Initialize Vulkan
+    VulkanContext ctx;
+    if (!ctx.Initialize()) {
+        Logger::Error("main", "Failed to initialize Vulkan");
+        return 1;
+    }
+
+    // Create output buffer (host-visible so we can read it back)
+    VulkanBuffer output_buffer;
+    VulkanBufferCreateInfo buffer_info = {};
+    buffer_info.size = width * height * sizeof(uint32_t);
+    buffer_info.usage = BufferUsage::StorageBuffer;
+    buffer_info.host_visible = true;
+
+    if (!output_buffer.Create(ctx, buffer_info)) {
+        Logger::Error("main", "Failed to create output buffer");
+        return 1;
+    }
+
+    // Create compute pipeline
+    VulkanComputePipeline pipeline;
+    ComputePipelineCreateInfo pipeline_info = {};
+    pipeline_info.shader_path = "build/shaders/raytracer.comp.spv";
+    pipeline_info.bindings = {
+        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}
+    };
+    pipeline_info.push_constant_size = sizeof(PushConstants);
+
+    if (!pipeline.Create(ctx, pipeline_info)) {
+        Logger::Error("main", "Failed to create compute pipeline");
+        return 1;
+    }
+
+    // Allocate and update descriptor set
+    VkDescriptorSet descriptor_set = pipeline.AllocateDescriptorSet();
+    pipeline.UpdateDescriptorSet(descriptor_set, 0, output_buffer.GetBuffer(), output_buffer.GetSize());
+
+    // Record and submit compute commands
+    VkCommandBuffer cmd = ctx.BeginSingleTimeCommands();
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.GetPipeline());
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.GetPipelineLayout(), 0, 1, &descriptor_set, 0, nullptr);
+
+    Vector3f camera_pos;
+    std::cin >> camera_pos.x >> camera_pos.y >> camera_pos.z;
 
     Camera camera(45.0F, 0.01F, 100.0F);
-    camera.SetPosition(Vector3f(5, 2.5f, 2));
-    camera.SetDirection(glm::normalize(Vector3f(-0.6f, -0.25f, -1.0f)));
-    camera.Resize(OUTPUT_WIDTH, OUTPUT_HEIGHT);
+    camera.Resize(width, height);
+    camera.SetPosition(camera_pos);
+    camera.SetDirection(glm::normalize(Vector3f(0.0F, -0.2F, -1.0F)));
 
-    Scene scene;
-    ConfigureScene(scene);
+    PushConstants pc {width, height, samples, camera.GetView(), camera.GetProjection()};
+    pipeline.PushConstants(cmd, &pc, sizeof(PushConstants));
 
-    bool render_animation = false;
+    uint32_t group_x = (width + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
+    uint32_t group_y = (height + COMPUTE_GROUP_SIZE - 1) / COMPUTE_GROUP_SIZE;
+    vkCmdDispatch(cmd, group_x, group_y, 1);
 
-    RenderOptions options = {
-        .samples = 64,
-        .max_bounces = 5,
-    };
+    Logger::Info("main", "Dispatched compute shader with group size: {}x{}", group_x, group_y);
 
-    std::cin >> options.samples >> render_animation;
+    ctx.EndSingleTimeCommands(cmd);
 
-    if (render_animation) {
-        constexpr Vector3f MOVE_STEP = Vector3f(-0.25F, 0, -0.25F);
+    Logger::Info("main", "Finished executing compute shader");
 
-        uint32_t frames;
-        std::cin >> frames;
+    // Read back the buffer
+    Logger::Info("main", "Reading back buffer...");
+    std::vector<uint32_t> pixels(width * height);
+    output_buffer.Download(pixels.data(), pixels.size() * sizeof(uint32_t));
 
-        for (uint32_t i = 1; i <= frames; i++) {
-            std::cout << "Rendering frame " << i << " of " << frames << std::endl;
-            camera.Move(MOVE_STEP);
+    // Write to PNG using stb_image_write
+    Logger::Info("main", "Writing to PNG...");
+    stbi_write_png(output_path.c_str(), width, height, COLOR_COMPONENTS, pixels.data(), width * COLOR_COMPONENTS);
+    Logger::Info("main", "Wrote output to {}", output_path);
 
-            renderer.RenderFrame(scene, camera, buffer, options);
-
-            std::string filename = std::format("output/frames/frame-{}.png", i);
-            WriteImageToDisk(buffer, filename.c_str());
-            std::cout << "Rendered frame " << i << " of " << frames << std::endl;
-        }
-    } else {
-        renderer.RenderFrame(scene, camera, buffer, options);
-        WriteImageToDisk(buffer, "output/image.png");
-    }
+    // Cleanup
+    pipeline.Destroy();
+    output_buffer.Destroy();
+    ctx.Destroy();
 
     return 0;
 }

@@ -73,10 +73,10 @@ bool Renderer::BakeScene() noexcept {
     }
     Logger::Info("Renderer", "Geometry buffers created");
 
-    // if (!CreateMaterialBuffer(*m_scene)) {
-    //     Logger::Error("Renderer", "Failed to create material buffer");
-    //     return false;
-    // }
+    if (!CreateMaterialBuffer(*m_scene)) {
+        Logger::Error("Renderer", "Failed to create material buffer");
+        return false;
+    }
 
     if (!UpdateDescriptorSets()) {
         Logger::Error("Renderer", "Failed to update descriptor sets");
@@ -187,6 +187,7 @@ bool Renderer::CreateComputePipeline() noexcept {
         {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
         {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
         {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
+        {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
     };
     pipeline_info.push_constant_size = sizeof(PushConstants);
 
@@ -195,10 +196,11 @@ bool Renderer::CreateComputePipeline() noexcept {
 
 bool Renderer::UpdateDescriptorSets() noexcept {
     m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 0, m_output_buffer.GetBuffer(), m_output_buffer.GetSize());
+    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 1, m_material_buffer.GetBuffer(), m_material_buffer.GetSize());
 
-    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 1, m_triangle_buffer.GetBuffer(), m_triangle_buffer.GetSize());
-    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 2, m_sphere_buffer.GetBuffer(), m_sphere_buffer.GetSize());
-    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 3, m_plane_buffer.GetBuffer(), m_plane_buffer.GetSize());
+    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 2, m_triangle_buffer.GetBuffer(), m_triangle_buffer.GetSize());
+    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 3, m_sphere_buffer.GetBuffer(), m_sphere_buffer.GetSize());
+    m_compute_pipeline.UpdateDescriptorSet(m_descriptor_set, 4, m_plane_buffer.GetBuffer(), m_plane_buffer.GetSize());
 
     return true;
 }

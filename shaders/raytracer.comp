@@ -20,32 +20,24 @@ layout(std430, binding = 0) buffer OutputBuffer {
     uint pixels[];
 } image_buffer;
 
-layout(std430, binding = 1) buffer TriangleBuffer {
+// --------------- Scene Data ---------------
+
+layout(std430, binding = 1) buffer MaterialBuffer {
+    Material materials[];
+} material_buffer;
+
+layout(std430, binding = 2) buffer TriangleBuffer {
     Triangle triangles[];
 } triangle_buffer;
 
-layout(std430, binding = 2) buffer SphereBuffer {
+layout(std430, binding = 3) buffer SphereBuffer {
     Sphere spheres[];
 } sphere_buffer;
 
-layout(std430, binding = 3) buffer PlaneBuffer {
+layout(std430, binding = 4) buffer PlaneBuffer {
     Plane planes[];
 } plane_buffer;
 
-// --------------- Scene Data ---------------
-
-const Material materials[] = Material[](
-    Material(vec3(0.9, 0.1, 0.1), 0.2, vec3(0.0), 0.0),                   // 0: red
-    Material(vec3(0.1, 0.8, 0.1), 0.5, vec3(0.0), 0.3),                   // 1: green
-    Material(vec3(0.1, 0.3, 0.9), 0.05, vec3(0.0), 1.0),                  // 2: blue metallic
-    Material(vec3(1.0, 0.5, 0.1), 0.3, vec3(0.0), 0.0),                   // 3: orange
-    Material(vec3(0.7, 0.1, 0.8), 0.15, vec3(0.0), 0.6),                  // 4: purple
-    Material(vec3(0.9, 0.9, 0.1), 0.4, vec3(0.0), 0.2),                   // 5: yellow
-    Material(vec3(0.1, 0.8, 0.8), 0.1, vec3(0.0), 0.8),                   // 6: cyan
-    Material(vec3(1.0, 0.4, 0.7), 0.9, vec3(0.0), 0.1),                   // 7: pink
-    Material(vec3(0.9, 0.9, 0.9), 0.8, vec3(0.0), 0.0),                   // 8: white
-    Material(vec3(1.0, 1.0, 1.0), 0.0, vec3(1.0, 0.95, 0.9) * 12.0, 0.0)  // 9: light
-);
 
 const vec3 background_color = vec3(0.05, 0.05, 0.15);
 
@@ -232,7 +224,11 @@ vec4 ProcessFragment(Ray ray, uint seed) {
             break;
         }
 
-        Material material = materials[result.material_index];
+        if (result.material_index >= material_buffer.materials.length()) {
+            break;
+        }
+
+        Material material = material_buffer.materials[result.material_index];
 
         light += material.emission * contribution;
 

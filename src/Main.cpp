@@ -83,20 +83,31 @@ void LoadScene(Scene& scene) {
     LoadObj(obj_file, scene);
     obj_file.close();
 
-    scene.AddSphere(Sphere(Vector3f(0.0, 0.0, -5.0), 1.0, 0));    // center red
-    scene.AddSphere(Sphere(Vector3f(2.5, 0.0, -4.0), 0.8, 1));    // right green
-    scene.AddSphere(Sphere(Vector3f(-2.5, 0.0, -4.0), 0.8, 2));   // left blue metallic
-    scene.AddSphere(Sphere(Vector3f(1.2, -0.5, -6.5), 0.6, 3));   // orange
-    scene.AddSphere(Sphere(Vector3f(-1.2, -0.5, -6.5), 0.6, 4));  // purple
-    scene.AddSphere(Sphere(Vector3f(4.0, 0.5, -6.0), 0.7, 5));    // yellow
-    scene.AddSphere(Sphere(Vector3f(-4.0, 0.5, -6.0), 0.7, 6));   // cyan
-    scene.AddSphere(Sphere(Vector3f(0.0, 1.5, -3.5), 0.5, 7));    // pink
-    scene.AddSphere(Sphere(Vector3f(3.5, -0.3, -8.0), 0.9, 8));   // white
-    scene.AddSphere(Sphere(Vector3f(-3.5, -0.3, -8.0), 0.9, 0));  // red
-    scene.AddSphere(Sphere(Vector3f(0.0, 6.0, -3.0), 0.6, 9));    // light 1
-    scene.AddSphere(Sphere(Vector3f(-5.0, 6.0, -5.0), 0.4, 9));   // light 2
+    scene.AddMaterial(Material(Vector3f(0.9f, 0.1f, 0.1f), 0.2f, Vector3f(0.0f), 0.0f));                       // 0: red
+    scene.AddMaterial(Material(Vector3f(0.1f, 0.8f, 0.1f), 0.5f, Vector3f(0.0f), 0.3f));                       // 1: green
+    scene.AddMaterial(Material(Vector3f(0.1f, 0.3f, 0.9f), 0.05f, Vector3f(0.0f), 1.0f));                      // 2: blue metallic
+    scene.AddMaterial(Material(Vector3f(1.0f, 0.5f, 0.1f), 0.3f, Vector3f(0.0f), 0.0f));                       // 3: orange
+    scene.AddMaterial(Material(Vector3f(0.7f, 0.1f, 0.8f), 0.15f, Vector3f(0.0f), 0.6f));                      // 4: purple
+    scene.AddMaterial(Material(Vector3f(0.9f, 0.9f, 0.1f), 0.4f, Vector3f(0.0f), 0.2f));                       // 5: yellow
+    scene.AddMaterial(Material(Vector3f(0.1f, 0.8f, 0.8f), 0.1f, Vector3f(0.0f), 0.8f));                       // 6: cyan
+    scene.AddMaterial(Material(Vector3f(1.0f, 0.4f, 0.7f), 0.9f, Vector3f(0.0f), 0.1f));                       // 7: pink
+    scene.AddMaterial(Material(Vector3f(0.9f, 0.9f, 0.9f), 0.8f, Vector3f(0.0f), 0.0f));                       // 8: white
+    scene.AddMaterial(Material(Vector3f(1.0f, 1.0f, 1.0f), 0.0f, Vector3f(1.0f, 0.95f, 0.9f) * 12.0f, 0.0f));  // 9: light
 
-    scene.AddPlane(Plane(Vector3f(0.0, 1.0, 0.0), -1.5, 8));  // ground plane
+    scene.AddSphere(Sphere(Vector3f(0.0f, 0.0f, -5.0f), 1.0f, 0));    // center red
+    scene.AddSphere(Sphere(Vector3f(2.5f, 0.0f, -4.0f), 0.8f, 1));    // right green
+    scene.AddSphere(Sphere(Vector3f(-2.5f, 0.0f, -4.0f), 0.8f, 2));   // left blue metallic
+    scene.AddSphere(Sphere(Vector3f(1.2f, -0.5f, -6.5f), 0.6f, 3));   // orange
+    scene.AddSphere(Sphere(Vector3f(-1.2f, -0.5f, -6.5f), 0.6f, 4));  // purple
+    scene.AddSphere(Sphere(Vector3f(4.0f, 0.5f, -6.0f), 0.7f, 5));    // yellow
+    scene.AddSphere(Sphere(Vector3f(-4.0f, 0.5f, -6.0f), 0.7f, 6));   // cyan
+    scene.AddSphere(Sphere(Vector3f(0.0f, 1.5f, -3.5f), 0.5f, 7));    // pink
+    scene.AddSphere(Sphere(Vector3f(3.5f, -0.3f, -8.0f), 0.9f, 8));   // white
+    scene.AddSphere(Sphere(Vector3f(-3.5f, -0.3f, -8.0f), 0.9f, 0));  // red
+    scene.AddSphere(Sphere(Vector3f(0.0f, 6.0f, -3.0f), 0.6f, 9));    // light 1
+    scene.AddSphere(Sphere(Vector3f(-5.0f, 6.0f, -5.0f), 0.4f, 9));   // light 2
+
+    scene.AddPlane(Plane(Vector3f(0.0f, 1.0f, 0.0f), -1.5f, 8));  // ground plane
 }
 
 int main() {

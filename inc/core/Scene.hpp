@@ -1,12 +1,24 @@
 #pragma once
 
-#include <span>
 #include <vector>
 
 #include "core/Material.hpp"
 #include "core/Shapes.hpp"
 
 namespace hzr {
+
+struct Mesh;
+
+struct SceneProperties {
+    int32_t width;
+    int32_t height;
+    int32_t samples;
+    std::string output_path;
+    std::string model_path;
+    float camera_fov;
+    Vector3f camera_pos;
+    Vector3f camera_target;
+};
 
 class Scene {
    public:
@@ -19,11 +31,14 @@ class Scene {
     Scene(Scene&&) = delete;
     Scene& operator=(Scene&&) = delete;
 
+    void SetProperties(const SceneProperties& properties) noexcept { m_properties = properties; }
+    const SceneProperties& GetProperties() const noexcept { return m_properties; }
+
     void AddMaterial(const Material& material) noexcept { m_materials.push_back(material); }
     void AddSphere(const Sphere& sphere) noexcept { m_spheres.push_back(sphere); }
     void AddPlane(const Plane& plane) noexcept { m_planes.push_back(plane); }
 
-    void AddMesh(std::span<const Vertex> vertices, std::span<const uint32_t> indices) noexcept;
+    void AddMesh(const Mesh& mesh) noexcept;
 
     const std::vector<Material>& GetMaterials() const noexcept { return m_materials; }
     const std::vector<Sphere>& GetSpheres() const noexcept { return m_spheres; }
@@ -32,6 +47,9 @@ class Scene {
     const std::vector<uint32_t>& GetIndices() const noexcept { return m_indices; }
 
    private:
+    // Scene properties
+    SceneProperties m_properties;
+
     // Materials
     std::vector<Material> m_materials;
 

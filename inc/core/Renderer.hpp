@@ -31,6 +31,9 @@ class Renderer {
     static constexpr std::string_view COMPUTE_SHADER_PATH = "build/shaders/raytracer.comp.spv";
 
    public:
+    static constexpr uint32_t COLOR_COMPONENTS = 4;
+
+   public:
     Renderer() = default;
     ~Renderer() = default;
 

@@ -52,5 +52,5 @@ cmake -B build
 cmake --build build
 
 # Run
-./build/Hoshizora < examples/scene.props
+./build/Hoshizora ./examples/scene-01
 ```
